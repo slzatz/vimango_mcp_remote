@@ -1,0 +1,37 @@
+[project]
+name = "vimango-remote-mcp"
+version = "0.1.0"
+description = "Remote MCP server for vimango using PostgreSQL backend"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Steve Zatz", email = "slzatz@gmail.com" }
+]
+license = { text = "MIT" }
+dependencies = [
+    "mcp>=1.0.0",
+    "psycopg2-binary>=2.9.0",
+    "starlette",
+    "sse-starlette",
+    "uvicorn",
+]
+
+[project.scripts]
+vimango-remote-mcp = "vimango_remote_mcp.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"

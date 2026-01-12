@@ -1,0 +1,15 @@
+{
+  "postgres": {
+    "host": "localhost",
+    "port": "5432",
+    "user": "slzatz",
+    "password": "",
+    "db": "vimango",
+    "ssl_mode": "disable",
+    "ssl_ca_cert": ""
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080
+  }
+}
