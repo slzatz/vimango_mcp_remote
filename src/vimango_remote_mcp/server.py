@@ -34,15 +34,23 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
     """Middleware to validate Bearer token authentication."""
 
     async def dispatch(self, request, call_next):
-        auth_header = request.headers.get("Authorization", "")
+        token = None
 
-        if not auth_header.startswith("Bearer "):
+        # Check Authorization header first
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]  # Strip "Bearer " prefix
+
+        # Fall back to query parameter
+        if not token:
+            token = request.query_params.get("api_key")
+
+        if not token:
             return JSONResponse(
-                {"error": "Missing or invalid Authorization header"},
+                {"error": "Missing authentication (Bearer header or api_key param)"},
                 status_code=401
             )
 
-        token = auth_header[7:]  # Strip "Bearer " prefix
         if token != api_key:
             return JSONResponse(
                 {"error": "Invalid API key"},
