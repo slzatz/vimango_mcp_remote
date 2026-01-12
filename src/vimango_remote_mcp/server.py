@@ -10,8 +10,6 @@ from mcp.types import Tool, TextContent
 from starlette.applications import Starlette
 from starlette.routing import Route, Mount
 from starlette.responses import Response, JSONResponse
-from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware
 import uvicorn
 
 from .db import VimangoDatabase, load_config
@@ -30,43 +28,32 @@ sse_transport: SseServerTransport = None
 api_key: str = None
 
 
-class BearerAuthMiddleware(BaseHTTPMiddleware):
-    """Middleware to validate Bearer token authentication."""
+def check_auth(request) -> JSONResponse | None:
+    """Check authentication from request. Returns error response or None if OK."""
+    token = None
 
-    async def dispatch(self, request, call_next):
-        path = request.url.path
+    # Check Authorization header first
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]  # Strip "Bearer " prefix
 
-        # /messages/ endpoint uses session_id for auth - the SSE transport
-        # only gives valid session_ids to authenticated /sse connections,
-        # and session_ids are random UUIDs (unguessable)
-        if path.startswith("/messages/"):
-            return await call_next(request)
+    # Fall back to query parameter
+    if not token:
+        token = request.query_params.get("api_key")
 
-        # For /sse endpoint, validate api_key
-        token = None
+    if not token:
+        return JSONResponse(
+            {"error": "Missing authentication (Bearer header or api_key param)"},
+            status_code=401
+        )
 
-        # Check Authorization header first
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]  # Strip "Bearer " prefix
+    if token != api_key:
+        return JSONResponse(
+            {"error": "Invalid API key"},
+            status_code=401
+        )
 
-        # Fall back to query parameter
-        if not token:
-            token = request.query_params.get("api_key")
-
-        if not token:
-            return JSONResponse(
-                {"error": "Missing authentication (Bearer header or api_key param)"},
-                status_code=401
-            )
-
-        if token != api_key:
-            return JSONResponse(
-                {"error": "Invalid API key"},
-                status_code=401
-            )
-
-        return await call_next(request)
+    return None
 
 
 @app.list_tools()
@@ -423,6 +410,12 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
 
 async def handle_sse(request):
     """Handle SSE connection for MCP."""
+    # Check authentication if api_key is configured
+    if api_key:
+        auth_error = check_auth(request)
+        if auth_error:
+            return auth_error
+
     async with sse_transport.connect_sse(
         request.scope, request.receive, request._send
     ) as streams:
@@ -433,7 +426,7 @@ async def handle_sse(request):
     return Response()
 
 
-def create_starlette_app(require_auth: bool = True) -> Starlette:
+def create_starlette_app() -> Starlette:
     """Create Starlette app with MCP routes."""
     global sse_transport
     sse_transport = SseServerTransport("/messages/")
@@ -443,11 +436,7 @@ def create_starlette_app(require_auth: bool = True) -> Starlette:
         Mount("/messages/", app=sse_transport.handle_post_message),
     ]
 
-    middleware = []
-    if require_auth and api_key:
-        middleware.append(Middleware(BearerAuthMiddleware))
-
-    return Starlette(routes=routes, middleware=middleware)
+    return Starlette(routes=routes)
 
 
 def main():
