@@ -34,6 +34,15 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
     """Middleware to validate Bearer token authentication."""
 
     async def dispatch(self, request, call_next):
+        path = request.url.path
+
+        # /messages/ endpoint uses session_id for auth - the SSE transport
+        # only gives valid session_ids to authenticated /sse connections,
+        # and session_ids are random UUIDs (unguessable)
+        if path.startswith("/messages/"):
+            return await call_next(request)
+
+        # For /sse endpoint, validate api_key
         token = None
 
         # Check Authorization header first
