@@ -9,7 +9,9 @@ from mcp.server.sse import SseServerTransport
 from mcp.types import Tool, TextContent
 from starlette.applications import Starlette
 from starlette.routing import Route, Mount
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import uvicorn
 
 from .db import VimangoDatabase, load_config
@@ -23,6 +25,31 @@ db: VimangoDatabase = None
 
 # SSE transport instance
 sse_transport: SseServerTransport = None
+
+# API key for authentication
+api_key: str = None
+
+
+class BearerAuthMiddleware(BaseHTTPMiddleware):
+    """Middleware to validate Bearer token authentication."""
+
+    async def dispatch(self, request, call_next):
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return JSONResponse(
+                {"error": "Missing or invalid Authorization header"},
+                status_code=401
+            )
+
+        token = auth_header[7:]  # Strip "Bearer " prefix
+        if token != api_key:
+            return JSONResponse(
+                {"error": "Invalid API key"},
+                status_code=401
+            )
+
+        return await call_next(request)
 
 
 @app.list_tools()
@@ -389,7 +416,7 @@ async def handle_sse(request):
     return Response()
 
 
-def create_starlette_app() -> Starlette:
+def create_starlette_app(require_auth: bool = True) -> Starlette:
     """Create Starlette app with MCP routes."""
     global sse_transport
     sse_transport = SseServerTransport("/messages/")
@@ -399,12 +426,16 @@ def create_starlette_app() -> Starlette:
         Mount("/messages/", app=sse_transport.handle_post_message),
     ]
 
-    return Starlette(routes=routes)
+    middleware = []
+    if require_auth and api_key:
+        middleware.append(Middleware(BearerAuthMiddleware))
+
+    return Starlette(routes=routes, middleware=middleware)
 
 
 def main():
     """Entry point for the MCP server."""
-    global db
+    global db, api_key
 
     # Load configuration from project root
     config_path = Path(__file__).parent.parent.parent / "config.json"
@@ -412,6 +443,7 @@ def main():
 
     pg_config = config["postgres"]
     server_config = config.get("server", {})
+    api_key = config.get("api_key")
 
     # Initialize database
     db = VimangoDatabase(
@@ -432,7 +464,9 @@ def main():
         host = server_config.get("host", "0.0.0.0")
         port = server_config.get("port", 8080)
 
+        auth_status = "enabled" if api_key else "DISABLED (no api_key in config)"
         print(f"Starting vimango-remote-mcp server on {host}:{port}")
+        print(f"Authentication: {auth_status}")
         uvicorn.run(starlette_app, host=host, port=port)
     finally:
         db.close()
