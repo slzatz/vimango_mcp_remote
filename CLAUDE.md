@@ -19,6 +19,21 @@ uv run vimango-remote-mcp
 pytest
 ```
 
+## Running as a Systemd User Service
+
+On a remote server, the MCP server runs as a systemd user service (not root) at `~/.config/systemd/user/vimango-remote-mcp.service`.
+
+**Service management:**
+```bash
+systemctl --user start vimango-remote-mcp
+systemctl --user stop vimango-remote-mcp
+systemctl --user restart vimango-remote-mcp
+systemctl --user status vimango-remote-mcp
+journalctl --user -u vimango-remote-mcp -f  # follow logs
+```
+
+**Note:** Requires `sudo loginctl enable-linger $USER` for the service to start at boot without login.
+
 ## Architecture
 
 ```
