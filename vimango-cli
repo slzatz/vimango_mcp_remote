@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec uv run --project /home/slzatz/vimango_remote_mcp vimango-cli "$@"

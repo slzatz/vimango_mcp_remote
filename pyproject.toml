@@ -9,6 +9,7 @@ authors = [
 ]
 license = { text = "MIT" }
 dependencies = [
+    "click>=8.0",
     "mcp>=1.0.0",
     "psycopg2-binary>=2.9.0",
     "starlette",
@@ -18,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 vimango-remote-mcp = "vimango_remote_mcp.server:main"
+vimango-cli = "vimango_remote_mcp.cli:main"
 
 [build-system]
 requires = ["hatchling"]
