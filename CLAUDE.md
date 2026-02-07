@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Vimango Remote MCP Server - a remote Model Context Protocol (MCP) server that provides Claude iOS and other remote MCP clients access to a vimango notes system backed by PostgreSQL.
 
-## Commands
+Vimango-client is a local command-line tool that provides the same functionality as the remote MCP server but runs as CLI app and can be accessed by Claude Code's bash tool. The SKILL.md file provides guidance for working with the vimango-client CLI tool.
+
+## Remote MCP Server Setup
 
 ```bash
 # Install dependencies
@@ -54,6 +56,8 @@ Client (Claude iOS/MCP) ──HTTP/SSE──> Starlette Server ──> VimangoDa
 
 - `src/vimango_remote_mcp/server.py` - MCP server with 6 tools (create_note, list_contexts, list_folders, search_notes, get_note, update_note)
 - `src/vimango_remote_mcp/db.py` - PostgreSQL database abstraction with full-text search
+- `src/vimango_remote_mcp/cli.py` - cli script
+- `vimango-cli` - bash script that wraps the CLI script
 
 ## Database Schema Notes
 

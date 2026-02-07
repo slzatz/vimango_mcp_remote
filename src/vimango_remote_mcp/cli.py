@@ -120,6 +120,26 @@ def search(db, query, limit):
 
 
 @cli.command()
+@click.option("--limit", default=5, type=int, help="Number of recent notes to show")
+@click.pass_obj
+def recent(db, limit):
+    """Show the most recently modified notes."""
+    notes = db.recent_notes(limit)
+    if not notes:
+        click.echo("No notes found.")
+        sys.exit(1)
+
+    click.echo(f"Recent notes (last {len(notes)}):")
+    for note in notes:
+        modified = note["modified"].strftime("%Y-%m-%d %H:%M") if note["modified"] else ""
+        click.echo(
+            f"  {note['title']} "
+            f"(context: {note['context_title']}, folder: {note['folder_title']}, "
+            f"tid: {note['tid']}, modified: {modified})"
+        )
+
+
+@cli.command()
 @click.argument("tid", type=int)
 @click.pass_obj
 def get(db, tid):

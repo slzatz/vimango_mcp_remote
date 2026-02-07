@@ -236,6 +236,54 @@ class VimangoDatabase:
 
         return results
 
+    def recent_notes(self, limit: int = 5) -> list[dict[str, Any]]:
+        """
+        Return the most recently modified notes.
+
+        Args:
+            limit: Maximum number of notes to return (default 5)
+
+        Returns:
+            List of dictionaries containing tid, title, context_title,
+            folder_title, and modified timestamp.
+        """
+        if limit <= 0:
+            limit = 5
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                task.tid,
+                task.title,
+                COALESCE(context.title, 'none') AS context_title,
+                COALESCE(folder.title, 'none') AS folder_title,
+                task.modified
+            FROM task
+            LEFT JOIN context ON context.tid = task.context_tid
+            LEFT JOIN folder ON folder.tid = task.folder_tid
+            WHERE task.deleted = false
+              AND task.archived = false
+            ORDER BY task.modified DESC
+            LIMIT %s
+            """,
+            (limit,)
+        )
+        rows = cursor.fetchall()
+        cursor.close()
+
+        results: list[dict[str, Any]] = []
+        for tid, title, context_title, folder_title, modified in rows:
+            results.append({
+                "tid": tid,
+                "title": title,
+                "context_title": context_title,
+                "folder_title": folder_title,
+                "modified": modified,
+            })
+
+        return results
+
     def get_note_by_tid(self, tid: int) -> Optional[dict[str, Any]]:
         """
         Retrieve the full note content and metadata for a given task tid.
