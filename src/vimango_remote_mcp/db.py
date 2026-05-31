@@ -208,8 +208,8 @@ class VimangoDatabase:
                     COALESCE(context.title, 'none') AS context_title,
                     COALESCE(folder.title, 'none') AS folder_title
                 FROM task
-                LEFT JOIN context ON context.tid = task.context_tid
-                LEFT JOIN folder ON folder.tid = task.folder_tid
+                LEFT JOIN context ON context.uuid = task.context_uuid
+                LEFT JOIN folder ON folder.uuid = task.folder_uuid
                 WHERE task.deleted = false
                   AND task.archived = false
                   AND (to_tsvector('english', COALESCE(task.title, '') || ' ' || COALESCE(task.note, ''))
@@ -260,8 +260,8 @@ class VimangoDatabase:
                 COALESCE(folder.title, 'none') AS folder_title,
                 task.modified
             FROM task
-            LEFT JOIN context ON context.tid = task.context_tid
-            LEFT JOIN folder ON folder.tid = task.folder_tid
+            LEFT JOIN context ON context.uuid = task.context_uuid
+            LEFT JOIN folder ON folder.uuid = task.folder_uuid
             WHERE task.deleted = false
               AND task.archived = false
             ORDER BY task.modified DESC
@@ -301,8 +301,8 @@ class VimangoDatabase:
                    COALESCE(context.title, 'none') AS context_title,
                    COALESCE(folder.title, 'none') AS folder_title
             FROM task
-            LEFT JOIN context ON context.tid = task.context_tid
-            LEFT JOIN folder ON folder.tid = task.folder_tid
+            LEFT JOIN context ON context.uuid = task.context_uuid
+            LEFT JOIN folder ON folder.uuid = task.folder_uuid
             WHERE task.tid = %s AND task.deleted = false AND task.archived = false
             """,
             (tid,),
