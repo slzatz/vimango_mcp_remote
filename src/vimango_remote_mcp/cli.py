@@ -163,14 +163,36 @@ def get(db, tid):
 @cli.command()
 @click.argument("tid", type=int)
 @click.option("--title", default=None, help="New title")
+@click.option("--note", default=None, help="New note body (replaces entire body)")
+@click.option("--note-file", type=click.Path(exists=True), default=None, help="Read note body from file")
+@click.option("--append", is_flag=True, default=False, help="Append to existing note body instead of replacing")
 @click.option("--context", "context_name", default=None, help="New context name")
 @click.option("--folder", "folder_name", default=None, help="New folder name")
 @click.option("--star/--no-star", default=None, help="Star or unstar the note")
 @click.pass_obj
-def update(db, tid, title, context_name, folder_name, star):
-    """Update metadata on an existing note."""
-    if context_name is None and folder_name is None and title is None and star is None:
-        click.echo("Error: At least one of --title, --context, --folder, --star/--no-star must be provided.", err=True)
+def update(db, tid, title, note, note_file, append, context_name, folder_name, star):
+    """Update an existing note's content or metadata."""
+    if note is not None and note_file is not None:
+        click.echo("Error: Cannot use both --note and --note-file.", err=True)
+        sys.exit(1)
+
+    if note_file is not None:
+        with open(note_file) as f:
+            note = f.read()
+
+    if append and note is None:
+        click.echo("Error: --append requires --note or --note-file.", err=True)
+        sys.exit(1)
+
+    if append and note is not None:
+        existing = db.get_note_by_tid(tid)
+        if existing is None:
+            click.echo(f"No active note found with tid {tid}.", err=True)
+            sys.exit(1)
+        note = existing["note"] + "\n" + note
+
+    if context_name is None and folder_name is None and title is None and star is None and note is None:
+        click.echo("Error: At least one of --title, --note, --note-file, --context, --folder, --star/--no-star must be provided.", err=True)
         sys.exit(1)
 
     context_tid = context_uuid = None
@@ -197,6 +219,7 @@ def update(db, tid, title, context_name, folder_name, star):
         folder_uuid=folder_uuid,
         title=title,
         star=star,
+        note=note,
     )
 
     if updated:
@@ -209,6 +232,8 @@ def update(db, tid, title, context_name, folder_name, star):
             changes.append(f"title='{title}'")
         if star is not None:
             changes.append(f"star={star}")
+        if note is not None:
+            changes.append("note updated" if not append else "note appended")
         click.echo(f"Updated note {tid}: {', '.join(changes)}")
     else:
         click.echo(f"No note found with tid {tid}, or no changes were made.", err=True)

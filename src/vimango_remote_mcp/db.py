@@ -330,10 +330,11 @@ class VimangoDatabase:
         folder_tid: Optional[int] = None,
         folder_uuid: Optional[str] = None,
         title: Optional[str] = None,
-        star: Optional[bool] = None
+        star: Optional[bool] = None,
+        note: Optional[str] = None
     ) -> bool:
         """
-        Update metadata fields on an existing note.
+        Update fields on an existing note.
 
         Args:
             tid: Task tid of the note
@@ -343,6 +344,7 @@ class VimangoDatabase:
             folder_uuid: New folder UUID (optional)
             title: New title (optional)
             star: New star/favorite value (optional)
+            note: New note body (optional)
 
         Returns:
             True if a row was updated, False otherwise
@@ -370,6 +372,9 @@ class VimangoDatabase:
         if star is not None:
             updates.append("star = %s")
             params.append(star)
+        if note is not None:
+            updates.append("note = %s")
+            params.append(note)
 
         if not updates:
             return False
